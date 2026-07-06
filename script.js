@@ -180,6 +180,12 @@ function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
+// Phone number must be exactly 10 digits, numeric only, and start with 6-9
+// (standard Indian mobile number format).
+function isValidPhoneNumber(value) {
+  return /^[6-9][0-9]{9}$/.test(value);
+}
+
 // Centralized, human-readable messages for Firebase Auth errors.
 function getAuthErrorMessage(err) {
   switch (err.code) {
@@ -560,6 +566,11 @@ function setupProfileSubmit() {
       errors.desiredHostel = "Please select your desired hostel.";
     } else if (data.desiredHostel === data.currentHostel) {
       errors.desiredHostel = "Desired hostel must be different from current hostel.";
+    }
+    if (!data.phoneNumber) {
+      errors.phoneNumber = "Please enter your phone number.";
+    } else if (!isValidPhoneNumber(data.phoneNumber)) {
+      errors.phoneNumber = "Enter a valid 10-digit phone number starting with 6-9.";
     }
 
     if (Object.keys(errors).length > 0) {

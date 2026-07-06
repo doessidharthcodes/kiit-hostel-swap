@@ -309,8 +309,9 @@
               </div>
 
               <div class="field">
-                <label for="phoneNumber">Phone Number <span class="optional">(optional)</span></label>
-                <input type="tel" id="phoneNumber" name="phoneNumber" placeholder="e.g. 98765 43210" inputmode="numeric" />
+                <label for="phoneNumber">Phone Number <span class="req">*</span></label>
+                <input type="tel" id="phoneNumber" name="phoneNumber" placeholder="e.g. 9876543210" inputmode="numeric" required maxlength="10" />
+                <span class="field__error" id="err-phoneNumber"></span>
               </div>
 
             </div>
