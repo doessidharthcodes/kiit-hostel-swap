@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KIIT Hostel Swap Portal — Find Your Perfect Swap</title>
+  <meta name="description" content="Find KIIT students who want the opposite hostel swap and connect instantly." />
+
+  <!-- Google Fonts: Poppins for UI, JetBrains Mono for roll numbers / data -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Skip link for keyboard / screen reader users -->
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+
+  <!-- ============ NAVIGATIFON ============ -->
+  <header class="navbar" id="navbar">
+    <div class="navbar__inner">
+      <a href="#home" class="navbar__brand">
+        <span class="navbar__brand-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
+            <path d="M4 21V9.5L12 4l8 5.5V21" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+            <path d="M9 21v-6h6v6" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <span>KIIT Hostel Swap Portal</span>
+      </a>
+
+      <nav class="navbar__links" id="navLinks" aria-label="Primary">
+        <a href="#home">Home</a>
+        <a href="#swap-form">Find Swap</a>
+        <a href="#faq">FAQ</a>
+        <a href="#about">About</a>
+      </nav>
+
+      <div class="navbar__actions">
+        <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode" aria-pressed="false">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true">
+            <circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="1.8"/>
+            <path d="M12 2.5v2M12 19.5v2M21.5 12h-2M4.5 12h-2M18.4 5.6l-1.4 1.4M7 17l-1.4 1.4M18.4 18.4L17 17M7 7 5.6 5.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true">
+            <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.8 6.8 0 0 0 10.5 10.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+          </svg>
+        </button>
+
+        <button class="hamburger" id="hamburger" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="navLinks">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content">
+
+    <!-- ============ HERO ============ -->
+    <section class="hero" id="home">
+      <div class="hero__inner">
+        <div class="hero__copy">
+          <p class="eyebrow">For KIIT students, by KIIT students</p>
+          <h1>Swap hostels without the hassle.</h1>
+          <p class="hero__subtitle">Find students who want the opposite hostel swap and connect instantly.</p>
+          <div class="hero__cta-row">
+            <a href="#swap-form" class="btn btn--primary btn--lg">Find a Swap</a>
+            <a href="#how-it-works" class="btn btn--ghost btn--lg">How it works</a>
+          </div>
+          <div class="hero__stats" role="list">
+            <div class="hero__stat" role="listitem">
+              <span class="hero__stat-num">20</span>
+              <span class="hero__stat-label">Hostel blocks covered</span>
+            </div>
+            <div class="hero__stat" role="listitem">
+              <span class="hero__stat-num">100%</span>
+              <span class="hero__stat-label">Student verified</span>
+            </div>
+            <div class="hero__stat" role="listitem">
+              <span class="hero__stat-num">Free</span>
+              <span class="hero__stat-label">Always, no fees</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero__art" aria-hidden="true">
+          <!-- Signature illustration: two hostel blocks exchanging places -->
+          <svg viewBox="0 0 420 360" width="100%" height="100%" role="img">
+            <defs>
+              <linearGradient id="bldgA" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#3B7BFF"/>
+                <stop offset="100%" stop-color="#2457D9"/>
+              </linearGradient>
+              <linearGradient id="bldgB" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#7FA8FF"/>
+                <stop offset="100%" stop-color="#5686F5"/>
+              </linearGradient>
+            </defs>
+
+            <ellipse cx="210" cy="322" rx="150" ry="16" fill="#EAF1FF"/>
+
+            <!-- Building A (left) -->
+            <g class="art-building art-building--a">
+              <rect x="40" y="120" width="120" height="190" rx="14" fill="url(#bldgA)"/>
+              <rect x="60" y="150" width="24" height="24" rx="4" fill="#EAF1FF" opacity="0.9"/>
+              <rect x="98" y="150" width="24" height="24" rx="4" fill="#EAF1FF" opacity="0.9"/>
+              <rect x="136" y="150" width="14" height="24" rx="4" fill="#EAF1FF" opacity="0.6"/>
+              <rect x="60" y="188" width="24" height="24" rx="4" fill="#EAF1FF" opacity="0.9"/>
+              <rect x="98" y="188" width="24" height="24" rx="4" fill="#EAF1FF" opacity="0.9"/>
+              <rect x="60" y="226" width="24" height="24" rx="4" fill="#EAF1FF" opacity="0.9"/>
+              <rect x="98" y="226" width="24" height="24" rx="4" fill="#EAF1FF" opacity="0.9"/>
+              <rect x="86" y="264" width="42" height="46" rx="6" fill="#153A8A"/>
+              <text x="100" y="108" text-anchor="middle" font-family="Poppins, sans-serif" font-size="16" font-weight="700" fill="#153A8A">KP-4</text>
+            </g>
+
+            <!-- Building B (right) -->
+            <g class="art-building art-building--b">
+              <rect x="260" y="90" width="120" height="220" rx="14" fill="url(#bldgB)"/>
+              <rect x="280" y="120" width="24" height="24" rx="4" fill="#F5F9FF" opacity="0.95"/>
+              <rect x="318" y="120" width="24" height="24" rx="4" fill="#F5F9FF" opacity="0.95"/>
+              <rect x="280" y="158" width="24" height="24" rx="4" fill="#F5F9FF" opacity="0.95"/>
+              <rect x="318" y="158" width="24" height="24" rx="4" fill="#F5F9FF" opacity="0.95"/>
+              <rect x="280" y="196" width="24" height="24" rx="4" fill="#F5F9FF" opacity="0.95"/>
+              <rect x="318" y="196" width="24" height="24" rx="4" fill="#F5F9FF" opacity="0.95"/>
+              <rect x="306" y="264" width="42" height="46" rx="6" fill="#2457D9"/>
+              <text x="320" y="78" text-anchor="middle" font-family="Poppins, sans-serif" font-size="16" font-weight="700" fill="#2457D9">KP-25</text>
+            </g>
+
+            <!-- Swap arrows -->
+            <g class="art-swap-arrows">
+              <path d="M170 190 C205 160, 235 160, 255 185" stroke="#1B4FCC" stroke-width="4" fill="none" stroke-linecap="round"/>
+              <path d="M255 185 l-12 -10 M255 185 l-16 3" stroke="#1B4FCC" stroke-width="4" fill="none" stroke-linecap="round"/>
+              <path d="M250 215 C220 245, 190 245, 168 222" stroke="#1B4FCC" stroke-width="4" fill="none" stroke-linecap="round"/>
+              <path d="M168 222 l12 10 M168 222 l16 -3" stroke="#1B4FCC" stroke-width="4" fill="none" stroke-linecap="round"/>
+            </g>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ HOW IT WORKS (brief, supports hero) ============ -->
+    <section class="how" id="how-it-works">
+      <div class="how__inner">
+        <div class="how__step">
+          <span class="how__num">1</span>
+          <h3>Fill your details</h3>
+          <p>Tell us your current hostel and the one you want instead.</p>
+        </div>
+        <div class="how__step">
+          <span class="how__num">2</span>
+          <h3>We match you</h3>
+          <p>We instantly search for students with the opposite swap need.</p>
+        </div>
+        <div class="how__step">
+          <span class="how__num">3</span>
+          <h3>Connect directly</h3>
+          <p>Reach out to your match and coordinate the swap yourselves.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SWAP FORM ============ -->
+    <section class="form-section" id="swap-form">
+      <div class="form-card" id="formCard">
+        
+        <!-- SIGN IN / REGISTER PANEL -->
+        <div id="authPanel">
+          <div class="form-card__header">
+            <h2>Welcome to KIIT Hostel Swap</h2>
+            <p>Please register or sign in using your email to proceed.</p>
+          </div>
+          
+          <div class="auth-tabs">
+            <button type="button" class="btn btn--primary auth-tab-btn" id="tabRegisterBtn" data-tab="register">Register</button>
+            <button type="button" class="btn btn--ghost auth-tab-btn" id="tabLoginBtn" data-tab="login">Sign In</button>
+          </div>
+
+          <form id="authForm" novalidate>
+            <div class="form-grid" style="grid-template-columns: 1fr;">
+              <div class="field">
+                <label for="authEmail">Email Address <span class="req">*</span></label>
+                <input type="email" id="authEmail" name="authEmail" placeholder="name@example.com" required autocomplete="email" />
+                <span class="field__error" id="err-authEmail"></span>
+              </div>
+              <div class="field">
+                <label for="authPassword">Password (min 6 characters) <span class="req">*</span></label>
+                <input type="password" id="authPassword" name="authPassword" placeholder="••••••••" required autocomplete="current-password" />
+                <span class="field__error" id="err-authPassword"></span>
+              </div>
+            </div>
+            <button type="submit" class="btn btn--primary btn--lg btn--block" id="authSubmitBtn" style="margin-top: 18px;">
+              <span class="btn__label">Register Account</span>
+              <span class="btn__spinner" aria-hidden="true"></span>
+            </button>
+          </form>
+
+          <div class="auth-divider"><span>or</span></div>
+
+          <button type="button" class="btn btn--outline btn--lg btn--block btn--google" id="googleSignInBtn">
+            <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+              <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84c-.21 1.13-.84 2.09-1.8 2.73v2.27h2.91c1.7-1.57 2.69-3.88 2.69-6.64z"/>
+              <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.91-2.27c-.81.54-1.84.86-3.05.86-2.34 0-4.33-1.58-5.04-3.71H.96v2.34C2.44 15.98 5.48 18 9 18z"/>
+              <path fill="#FBBC05" d="M3.96 10.7A5.4 5.4 0 0 1 3.68 9c0-.59.1-1.17.28-1.7V4.96H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.04l3-2.34z"/>
+              <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0 5.48 0 2.44 2.02.96 4.96l3 2.34C4.67 5.16 6.66 3.58 9 3.58z"/>
+            </svg>
+            <span class="btn__label">Continue with Google</span>
+            <span class="btn__spinner" aria-hidden="true"></span>
+          </button>
+        </div>
+
+        <!-- EMAIL VERIFICATION PANEL -->
+        <div id="verificationPanel" hidden>
+          <div class="form-card__header">
+            <h2>Verify Your Email</h2>
+            <p>A verification link has been sent to your email address. Please click the link inside the email to verify your account.</p>
+          </div>
+          <div style="text-align: center; margin-bottom: 24px; font-weight: 600;" id="verificationEmailDisplay"></div>
+          <div style="display: flex; gap: 12px; flex-direction: column;">
+            <button type="button" class="btn btn--primary btn--block" id="checkVerificationBtn">I've Verified My Email</button>
+            <button type="button" class="btn btn--outline btn--block" id="resendVerificationBtn">Resend Verification Email</button>
+            <button type="button" class="btn btn--ghost btn--block" id="verificationSignOutBtn">Sign Out</button>
+          </div>
+        </div>
+
+        <!-- PROFILE CARD PANEL -->
+        <div id="profilePanel" hidden>
+          <div class="profile-meta-row">
+            <span id="userEmailSpan" style="font-weight: 500;">Signed in as: —</span>
+            <button type="button" class="btn btn--ghost" id="signOutBtn" style="padding: 6px 12px; font-size: 0.8rem;">Sign Out</button>
+          </div>
+
+          <div class="form-card__header" style="margin-top: 16px;">
+            <h2>Your Swap Profile</h2>
+            <p>Keep your profile updated. Other students will search based on these preferences.</p>
+          </div>
+
+          <form id="swapForm" novalidate>
+            <div class="form-grid">
+
+              <div class="field">
+                <label for="fullName">Full Name <span class="req">*</span></label>
+                <input type="text" id="fullName" name="fullName" placeholder="e.g. Ananya Sharma" required autocomplete="name" />
+                <span class="field__error" id="err-fullName"></span>
+              </div>
+
+              <div class="field">
+                <label for="rollNumber">Roll Number <span class="req">*</span></label>
+                <input type="text" id="rollNumber" name="rollNumber" placeholder="e.g. 2205525" required inputmode="numeric" />
+                <span class="field__error" id="err-rollNumber"></span>
+              </div>
+
+              <div class="field">
+                <label for="gender">Gender <span class="req">*</span></label>
+                <select id="gender" name="gender" required>
+                  <option value="" disabled selected>Select gender</option>
+                  <option value="Female">Female</option>
+                  <option value="Male">Male</option>
+                  <option value="Other">Other</option>
+                  <option value="Prefer not to say">Prefer not to say</option>
+                </select>
+                <span class="field__error" id="err-gender"></span>
+              </div>
+
+              <div class="field">
+                <label for="branch">Branch <span class="req">*</span></label>
+                <select id="branch" name="branch" required>
+                  <option value="" disabled selected>Select branch</option>
+                  <option value="CSE">CSE</option>
+                  <option value="IT">IT</option>
+                  <option value="ECE">ECE</option>
+                  <option value="EEE">EEE</option>
+                  <option value="Mechanical">Mechanical</option>
+                  <option value="Civil">Civil</option>
+                  <option value="Biotechnology">Biotechnology</option>
+                  <option value="Other">Other</option>
+                </select>
+                <span class="field__error" id="err-branch"></span>
+              </div>
+
+              <div class="field">
+                <label for="yearField">Year <span class="req">*</span></label>
+                <select id="yearField" name="yearField" required>
+                  <option value="" disabled selected>Select year</option>
+                  <option value="1st Year">1st Year</option>
+                  <option value="2nd Year">2nd Year</option>
+                  <option value="3rd Year">3rd Year</option>
+                  <option value="4th Year">4th Year</option>
+                </select>
+                <span class="field__error" id="err-yearField"></span>
+              </div>
+
+              <div class="field">
+                <label for="currentHostel">Current Hostel <span class="req">*</span></label>
+                <select id="currentHostel" name="currentHostel" required></select>
+                <span class="field__error" id="err-currentHostel"></span>
+              </div>
+
+              <div class="field">
+                <label for="desiredHostel">Desired Hostel <span class="req">*</span></label>
+                <select id="desiredHostel" name="desiredHostel" required></select>
+                <span class="field__error" id="err-desiredHostel"></span>
+              </div>
+
+              <div class="field">
+                <label for="roomNumber">Room Number <span class="optional">(optional)</span></label>
+                <input type="text" id="roomNumber" name="roomNumber" placeholder="e.g. 204" />
+              </div>
+
+              <div class="field">
+                <label for="phoneNumber">Phone Number <span class="optional">(optional)</span></label>
+                <input type="tel" id="phoneNumber" name="phoneNumber" placeholder="e.g. 98765 43210" inputmode="numeric" />
+              </div>
+
+            </div>
+
+            <div style="display: flex; gap: 14px; margin-top: 20px;">
+              <button type="submit" class="btn btn--primary btn--lg" id="submitBtn" style="flex: 2; margin-top: 0;">
+                <span class="btn__label">Save Profile</span>
+                <span class="btn__spinner" aria-hidden="true"></span>
+              </button>
+              <button type="button" class="btn btn--danger btn--lg" id="deleteBtn" style="flex: 1; margin-top: 0; display: none;">
+                <span class="btn__label">Delete Profile</span>
+                <span class="btn__spinner" aria-hidden="true"></span>
+              </button>
+            </div>
+          </form>
+
+          <!-- INCOMING & OUTGOING REQUESTS CONTAINER -->
+          <div id="requestsSection" class="requests-section" style="margin-top: 36px; display: none;">
+            <h3>Swap Contact Requests</h3>
+            <p style="font-size: 0.85rem; margin-bottom: 20px;">Approve incoming requests to share your contact details. Outgoing requests will reveal contacts when approved.</p>
+            
+            <h4 style="margin-bottom: 10px;">Incoming Requests</h4>
+            <div id="incomingRequestsList">
+              <p style="font-size: 0.9rem; font-style: italic; color: var(--color-text-faint);">No incoming requests yet.</p>
+            </div>
+            
+            <h4 style="margin-top: 24px; margin-bottom: 10px;">Outgoing Requests</h4>
+            <div id="outgoingRequestsList">
+              <p style="font-size: 0.9rem; font-style: italic; color: var(--color-text-faint);">No sent requests yet.</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ RESULTS ============ -->
+    <section class="results-section" id="results-section" aria-live="polite">
+      <div class="results-section__inner">
+        <div class="results-header" id="resultsHeader" hidden>
+          <h2>Matching students</h2>
+          <p id="resultsSubtitle"></p>
+        </div>
+
+        <div class="results-grid" id="resultsGrid"></div>
+
+        <!-- Empty state -->
+        <div class="empty-state" id="emptyState" hidden>
+          <svg viewBox="0 0 200 160" width="180" height="144" aria-hidden="true">
+            <ellipse cx="100" cy="140" rx="70" ry="10" fill="#EAF1FF"/>
+            <rect x="55" y="40" width="90" height="80" rx="12" fill="#EAF1FF"/>
+            <circle cx="100" cy="80" r="26" fill="#FFFFFF" stroke="#B9CDFA" stroke-width="2"/>
+            <path d="M90 80h20M100 70v20" stroke="#B9CDFA" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="140" cy="45" r="16" fill="#3B7BFF"/>
+            <path d="M134 45h12M140 39v12" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+          <h3>No matching students found yet.</h3>
+          <p>We'll keep looking — you can also get notified the moment a match appears.</p>
+          <button type="button" class="btn btn--outline" id="notifyBtn">Notify Me When Someone Matches</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FAQ ============ -->
+    <section class="faq" id="faq">
+      <div class="faq__inner">
+        <h2>Frequently asked questions</h2>
+        <div class="accordion">
+          <details class="accordion__item" open>
+            <summary>Is this an official KIIT service?</summary>
+            <p>No — this is a student-built directory to help peers find each other for hostel swaps. All actual hostel changes must still be approved through official KIIT hostel administration channels.</p>
+          </details>
+          <details class="accordion__item">
+            <summary>Is my data shared with anyone?</summary>
+            <p>Your details are only shown to other students browsing the swap directory so they can contact you. We don't sell or share your data with third parties.</p>
+          </details>
+          <details class="accordion__item">
+            <summary>Can I update or remove my listing later?</summary>
+            <p>Yes. Once connected to the backend, you'll be able to edit or delete your submission using your registered account at any time.</p>
+          </details>
+          <details class="accordion__item">
+            <summary>What if no one matches my swap?</summary>
+            <p>Use the "Notify Me When Someone Matches" button on the results page and we'll alert you the moment a matching student joins.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ ABOUT ============ -->
+    <section class="about" id="about">
+      <div class="about__inner">
+        <h2>About the portal</h2>
+        <p>KIIT Hostel Swap Portal was built to solve a simple, recurring problem — students wanting to swap hostel blocks with no easy way to find each other. Instead of relying on scattered WhatsApp groups and notice boards, this portal brings every swap request into one clean, searchable place.</p>
+      </div>
+    </section>
+
+    <!-- ============ CONTACT US ============ -->
+    <section class="about" id="contact">
+      <div class="about__inner">
+        <h2>Contact us</h2>
+        <p>Have a question, found a bug, or want to suggest a feature? Reach out any time.</p>
+        <p>Email: <a href="mailto:sidharth169033@gmail.com" class="contact-email-link">sidharth169033@gmail.com</a></p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="footer">
+    <div class="footer__inner">
+      <div class="footer__brand">
+        <span class="navbar__brand-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+            <path d="M4 21V9.5L12 4l8 5.5V21" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+            <path d="M9 21v-6h6v6" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <span>KIIT Hostel Swap Portal</span>
+      </div>
+
+      <nav class="footer__links" aria-label="Footer">
+        <a href="#about">About</a>
+        <a href="#privacy">Privacy Policy</a>
+        <a href="#contact">Contact</a>
+        <a href="#terms">Terms</a>
+      </nav>
+    </div>
+    <p class="footer__credit">
+      Made with <span class="footer__heart" aria-hidden="true">❤️</span> by Akshit Singh —
+      <a href="https://www.linkedin.com/in/akshit-singh-94a318369/" target="_blank" rel="noopener noreferrer" class="footer__credit-link">LinkedIn</a>
+    </p>
+    <p class="footer__copyright">© <span id="year"></span> KIIT Hostel Swap Portal. Built by students, for students.</p>
+  </footer>
+
+  <!-- ============ TOAST ============ -->
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="script.js" type="module"></script>
+</body>
+</html>
