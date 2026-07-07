@@ -93,6 +93,8 @@ let currentUserProfile = null;        // profiles/{uid}        (public)
 let currentUserPrivateProfile = null; // private_profiles/{uid} (private)
 let authMode = "register"; // "register" or "login"
 let activeListeners = [];  // holds unsubscribe fns for onSnapshot listeners
+let incomingRequestsCache = []; // latest incoming (received) contactRequests, kept in sync via onSnapshot
+let outgoingRequestsCache = []; // latest outgoing (sent) contactRequests, kept in sync via onSnapshot
 
 // =========================================================
 // 1. DOM ELEMENTS
@@ -119,6 +121,7 @@ const signOutBtn = document.getElementById("signOutBtn");
 const swapForm = document.getElementById("swapForm");
 const submitBtn = document.getElementById("submitBtn");
 const deleteBtn = document.getElementById("deleteBtn");
+const searchSwapBtn = document.getElementById("searchSwapBtn");
 
 const requestsSection = document.getElementById("requestsSection");
 const incomingRequestsList = document.getElementById("incomingRequestsList");
@@ -129,6 +132,17 @@ const resultsHeader = document.getElementById("resultsHeader");
 const resultsSubtitle = document.getElementById("resultsSubtitle");
 const resultsGrid = document.getElementById("resultsGrid");
 const emptyState = document.getElementById("emptyState");
+
+const matchModalOverlay = document.getElementById("matchModalOverlay");
+const matchModalCloseBtn = document.getElementById("matchModalCloseBtn");
+const tabDirectMatchesBtn = document.getElementById("tabDirectMatchesBtn");
+const tabRecommendedBtn = document.getElementById("tabRecommendedBtn");
+const directMatchesPanel = document.getElementById("directMatchesPanel");
+const recommendedPanel = document.getElementById("recommendedPanel");
+const directMatchesGrid = document.getElementById("directMatchesGrid");
+const recommendedGrid = document.getElementById("recommendedGrid");
+const directMatchesEmpty = document.getElementById("directMatchesEmpty");
+const recommendedEmpty = document.getElementById("recommendedEmpty");
 
 // =========================================================
 // 2. HELPERS: TOASTS, FIELD ERRORS, ERROR MESSAGES
@@ -244,6 +258,7 @@ function updateUIScreens() {
     profilePanel.hidden = true;
     resultsSection.style.display = 'none';
     cleanupActiveListeners();
+    closeMatchModal();
     return;
   }
 
@@ -497,6 +512,7 @@ async function loadUserProfile() {
       }
 
       deleteBtn.style.display = "inline-flex";
+      if (searchSwapBtn) searchSwapBtn.style.display = "inline-flex";
       submitBtn.querySelector(".btn__label").textContent = "Update Profile";
 
       fetchMatches();
@@ -518,6 +534,7 @@ async function loadUserProfile() {
       if (swapForm.roomNumber) swapForm.roomNumber.value = "";
 
       deleteBtn.style.display = "none";
+      if (searchSwapBtn) searchSwapBtn.style.display = "none";
       submitBtn.querySelector(".btn__label").textContent = "Save Profile";
       requestsSection.style.display = "none";
 
@@ -669,6 +686,64 @@ function setupProfileDelete() {
 //       AND my.desiredHostel == their.currentHostel
 //       (excluding myself)
 // =========================================================
+async function fetchDirectMatches() {
+  const q = query(
+    collection(db, "profiles"),
+    where("currentHostel", "==", currentUserProfile.desiredHostel),
+    where("desiredHostel", "==", currentUserProfile.currentHostel)
+  );
+
+  const snap = await getDocs(q);
+  const matches = [];
+
+  snap.forEach((docSnap) => {
+    if (docSnap.id !== currentUser.uid) {
+      // Availability Status: the "profiles" collection only ever holds active
+      // swap listings — the schema has no separate status field and we are
+      // not adding one — so every document fetched here is inherently
+      // "Looking for Swap".
+      matches.push({ uid: docSnap.id, ...docSnap.data(), availabilityStatus: "Looking for Swap" });
+    }
+  });
+
+  return matches;
+}
+
+// Indirect / smart recommendations: anyone whose desired hostel equals my
+// current hostel. This single condition covers two ranked tiers:
+//   Tier 1 (exact matches): their currentHostel also equals my desiredHostel
+//           — a full two-way swap, ranked highest.
+//   Tier 2 (indirect/stepping-stone): everything else matching the base
+//           condition — e.g. User B (KP-5 -> KP-2) recommended to
+//           User A (KP-2 -> KP-6), since A moving into KP-5 first opens up
+//           more future swap possibilities toward KP-6.
+// One indexed equality query — no extra reads beyond what's needed.
+async function fetchRecommendedSwaps() {
+  const q = query(
+    collection(db, "profiles"),
+    where("desiredHostel", "==", currentUserProfile.currentHostel)
+  );
+
+  const snap = await getDocs(q);
+  const seen = new Set();
+  const recommended = [];
+
+  snap.forEach((docSnap) => {
+    if (docSnap.id === currentUser.uid) return; // never show the logged-in user
+    if (seen.has(docSnap.id)) return;            // never show duplicate users
+    seen.add(docSnap.id);
+
+    const profile = { uid: docSnap.id, ...docSnap.data(), availabilityStatus: "Looking for Swap" };
+    profile.isExactMatch = profile.currentHostel === currentUserProfile.desiredHostel;
+    recommended.push(profile);
+  });
+
+  // Rank: exact matches first, then indirect recommendations.
+  recommended.sort((a, b) => Number(b.isExactMatch) - Number(a.isExactMatch));
+
+  return recommended;
+}
+
 async function fetchMatches() {
   if (!currentUserProfile) {
     resultsHeader.hidden = true;
@@ -678,26 +753,45 @@ async function fetchMatches() {
   }
 
   try {
-    const q = query(
-      collection(db, "profiles"),
-      where("currentHostel", "==", currentUserProfile.desiredHostel),
-      where("desiredHostel", "==", currentUserProfile.currentHostel)
-    );
-
-    const snap = await getDocs(q);
-    const matches = [];
-
-    snap.forEach((docSnap) => {
-      if (docSnap.id !== currentUser.uid) {
-        matches.push({ uid: docSnap.id, ...docSnap.data() });
-      }
-    });
-
+    const matches = await fetchDirectMatches();
     renderResultsList(matches);
   } catch (err) {
     console.error(err);
     showToast("Error retrieving matches: " + getFirestoreErrorMessage(err), "error");
   }
+}
+
+// =========================================================
+// 7c. SEARCH SWAP BUTTON (on-demand popup — no auto-open)
+// Firestore is only queried the moment the user clicks this
+// button; nothing is fetched automatically after save/update.
+// =========================================================
+function setupSearchSwapButton() {
+  if (!searchSwapBtn) return;
+
+  searchSwapBtn.addEventListener("click", async () => {
+    if (!currentUserProfile) {
+      showToast("Please save your profile first.", "error");
+      return;
+    }
+
+    searchSwapBtn.classList.add("is-loading");
+    searchSwapBtn.disabled = true;
+
+    try {
+      const [directMatches, recommended] = await Promise.all([
+        fetchDirectMatches(),
+        fetchRecommendedSwaps()
+      ]);
+      openMatchModal(directMatches, recommended);
+    } catch (err) {
+      console.error(err);
+      showToast("Error retrieving matches: " + getFirestoreErrorMessage(err), "error");
+    } finally {
+      searchSwapBtn.classList.remove("is-loading");
+      searchSwapBtn.disabled = false;
+    }
+  });
 }
 
 function renderResultsList(matches) {
@@ -755,6 +849,147 @@ function renderResultsList(matches) {
     requestBtn.addEventListener('click', () => sendContactRequest(match.uid, match, requestBtn));
 
     resultsGrid.appendChild(card);
+  });
+}
+
+// =========================================================
+// 7b. SEARCH SWAP POPUP MODAL
+// Opens ONLY when the "Search Swap" button is clicked.
+// Two tabs: Direct Matches (exact swaps) and Recommended
+// Swaps (indirect / smart recommendations).
+// =========================================================
+function buildModalCard(profile, { note } = {}) {
+  const card = document.createElement('article');
+  card.className = 'modal-card';
+
+  // Reflect any existing outgoing request so the button shows the correct
+  // state instead of always offering "Send Request".
+  const existingReq = outgoingRequestsCache.find((r) => r.toUid === profile.uid);
+  let ctaHTML;
+  if (existingReq && existingReq.status === 'approved') {
+    ctaHTML = `<button type="button" class="btn btn--outline btn--block modal-card__cta" disabled>Contact Shared</button>`;
+  } else if (existingReq) {
+    ctaHTML = `<button type="button" class="btn btn--outline btn--block modal-card__cta" disabled>Request Sent</button>`;
+  } else {
+    ctaHTML = `<button type="button" class="btn btn--primary btn--block modal-card__cta" id="modalReqBtn-${profile.uid}">Send Request</button>`;
+  }
+
+  card.innerHTML = `
+    <div class="modal-card__top">
+      <div class="modal-card__avatar" aria-hidden="true">${getInitials(profile.fullName)}</div>
+      <div>
+        <p class="modal-card__name">${profile.fullName}</p>
+        <span class="modal-card__status">${profile.availabilityStatus}</span>
+      </div>
+    </div>
+
+    <div class="modal-card__swap">
+      <span class="modal-card__hostel">${profile.currentHostel}</span>
+      <span class="modal-card__arrow" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
+          <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+      <span class="modal-card__hostel">${profile.desiredHostel}</span>
+    </div>
+
+    <div class="modal-card__meta">
+      <span><strong>${profile.branch}</strong>Branch</span>
+      <span><strong>${profile.year}</strong>Year</span>
+    </div>
+
+    ${note ? `<p class="modal-card__note">${note}</p>` : ''}
+
+    ${ctaHTML}
+  `;
+
+  if (!existingReq) {
+    const requestBtn = card.querySelector(`#modalReqBtn-${profile.uid}`);
+    requestBtn.addEventListener('click', () => sendContactRequest(profile.uid, profile, requestBtn));
+  }
+
+  return card;
+}
+
+function renderDirectMatchesTab(matches) {
+  directMatchesGrid.innerHTML = '';
+
+  if (matches.length === 0) {
+    directMatchesGrid.hidden = true;
+    directMatchesEmpty.hidden = false;
+    return;
+  }
+
+  directMatchesGrid.hidden = false;
+  directMatchesEmpty.hidden = true;
+
+  matches.forEach((match) => {
+    directMatchesGrid.appendChild(buildModalCard(match));
+  });
+}
+
+function renderRecommendedTab(recommended) {
+  recommendedGrid.innerHTML = '';
+
+  if (recommended.length === 0) {
+    recommendedGrid.hidden = true;
+    recommendedEmpty.hidden = false;
+    return;
+  }
+
+  recommendedGrid.hidden = false;
+  recommendedEmpty.hidden = true;
+
+  recommended.forEach((profile) => {
+    const note = "Recommended because this user wants your current hostel.";
+    recommendedGrid.appendChild(buildModalCard(profile, { note }));
+  });
+}
+
+function switchMatchModalTab(tab) {
+  const isDirect = tab === 'direct';
+
+  tabDirectMatchesBtn.classList.toggle('is-active', isDirect);
+  tabRecommendedBtn.classList.toggle('is-active', !isDirect);
+  tabDirectMatchesBtn.setAttribute('aria-selected', String(isDirect));
+  tabRecommendedBtn.setAttribute('aria-selected', String(!isDirect));
+
+  directMatchesPanel.hidden = !isDirect;
+  recommendedPanel.hidden = isDirect;
+}
+
+function openMatchModal(directMatches, recommended) {
+  if (!matchModalOverlay) return;
+
+  renderDirectMatchesTab(directMatches);
+  renderRecommendedTab(recommended);
+  switchMatchModalTab('direct');
+
+  matchModalOverlay.hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+
+function closeMatchModal() {
+  if (!matchModalOverlay) return;
+  matchModalOverlay.hidden = true;
+  document.body.style.overflow = '';
+}
+
+function setupMatchModal() {
+  if (!matchModalOverlay) return;
+
+  matchModalCloseBtn.addEventListener('click', closeMatchModal);
+  tabDirectMatchesBtn.addEventListener('click', () => switchMatchModalTab('direct'));
+  tabRecommendedBtn.addEventListener('click', () => switchMatchModalTab('recommended'));
+
+  // Click outside the modal card closes it
+  matchModalOverlay.addEventListener('click', (e) => {
+    if (e.target === matchModalOverlay) closeMatchModal();
+  });
+
+  // Esc closes it
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !matchModalOverlay.hidden) closeMatchModal();
   });
 }
 
@@ -820,15 +1055,12 @@ function subscribeToRequests() {
   const incomingQuery = query(collection(db, "contactRequests"), where("toUid", "==", currentUser.uid));
   const outgoingQuery = query(collection(db, "contactRequests"), where("fromUid", "==", currentUser.uid));
 
-  let incomingRequests = [];
-  let outgoingRequests = [];
-
   const handleIncoming = onSnapshot(
     incomingQuery,
     (snap) => {
-      incomingRequests = [];
-      snap.forEach((docSnap) => incomingRequests.push({ id: docSnap.id, ...docSnap.data() }));
-      renderRequestsLists(incomingRequests, outgoingRequests);
+      incomingRequestsCache = [];
+      snap.forEach((docSnap) => incomingRequestsCache.push({ id: docSnap.id, ...docSnap.data() }));
+      renderRequestsLists(incomingRequestsCache, outgoingRequestsCache);
     },
     (err) => {
       console.error(err);
@@ -839,9 +1071,9 @@ function subscribeToRequests() {
   const handleOutgoing = onSnapshot(
     outgoingQuery,
     (snap) => {
-      outgoingRequests = [];
-      snap.forEach((docSnap) => outgoingRequests.push({ id: docSnap.id, ...docSnap.data() }));
-      renderRequestsLists(incomingRequests, outgoingRequests);
+      outgoingRequestsCache = [];
+      snap.forEach((docSnap) => outgoingRequestsCache.push({ id: docSnap.id, ...docSnap.data() }));
+      renderRequestsLists(incomingRequestsCache, outgoingRequestsCache);
     },
     (err) => {
       console.error(err);
@@ -852,111 +1084,161 @@ function subscribeToRequests() {
   activeListeners.push(handleIncoming, handleOutgoing);
 }
 
+// Firestore Timestamp -> readable string. Returns '' if not yet resolved
+// (serverTimestamp() is briefly null until the server confirms the write).
+function formatTimestamp(ts) {
+  if (!ts || typeof ts.toDate !== "function") return "";
+  return ts.toDate().toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+}
+
+function buildIncomingRequestCard(req) {
+  const reqCard = document.createElement('div');
+  reqCard.className = 'request-card';
+  const isApproved = req.status === 'approved';
+  const requestedAt = formatTimestamp(req.createdAt);
+  const approvedAt = formatTimestamp(req.approvedAt);
+
+  let actionsHTML = '';
+  if (!isApproved) {
+    actionsHTML = `
+      <div class="request-card__actions">
+        <div class="request-card__checkboxes">
+          <label class="request-card__checkbox-label">
+            <input type="checkbox" id="shareEmail-${req.id}" checked /> Share Email
+          </label>
+          <label class="request-card__checkbox-label">
+            <input type="checkbox" id="sharePhone-${req.id}" checked /> Share Phone Number
+          </label>
+        </div>
+        <div class="request-card__buttons">
+          <button type="button" class="btn btn--primary btn-approve-${req.id}">Approve</button>
+          <button type="button" class="btn btn--danger btn-decline-${req.id}">Reject</button>
+        </div>
+      </div>
+    `;
+  } else {
+    actionsHTML = `
+      <div class="request-card__shared-info">
+        <p style="margin:0 0 6px 0; font-weight:600; color:var(--color-success);">Approved ✓</p>
+        <p style="margin:0; font-size:0.85rem;">You shared your contact details with ${req.senderName}.</p>
+      </div>
+    `;
+  }
+
+  reqCard.innerHTML = `
+    <div class="request-card__header">
+      <div>
+        <p class="request-card__title">${req.senderName} (${req.senderBranch}, ${req.senderYear})</p>
+        <p class="request-card__subtitle">Wants to swap: ${req.senderCurrentHostel} → ${req.senderDesiredHostel}</p>
+        ${requestedAt ? `<p class="request-card__timestamp">Requested: ${requestedAt}</p>` : ''}
+        ${isApproved && approvedAt ? `<p class="request-card__timestamp">Approved: ${approvedAt}</p>` : ''}
+      </div>
+      <span class="request-card__status ${isApproved ? 'request-card__status--approved' : ''}">${req.status}</span>
+    </div>
+    ${actionsHTML}
+  `;
+
+  if (!isApproved) {
+    reqCard.querySelector(`.btn-approve-${req.id}`).addEventListener("click", () => approveRequest(req));
+    reqCard.querySelector(`.btn-decline-${req.id}`).addEventListener("click", () => declineRequest(req.id));
+  }
+
+  return reqCard;
+}
+
+function buildOutgoingRequestCard(req) {
+  const reqCard = document.createElement('div');
+  reqCard.className = 'request-card';
+  const isApproved = req.status === 'approved';
+  const requestedAt = formatTimestamp(req.createdAt);
+  const approvedAt = formatTimestamp(req.approvedAt);
+
+  let detailsHTML = '';
+  if (isApproved) {
+    detailsHTML = `
+      <div class="request-card__shared-info">
+        <p style="margin:0 0 6px 0; font-weight:600; color:var(--color-success);">Recipient Shared Contact Details:</p>
+        <div class="request-card__info-item">
+          <strong>Email</strong> <span>${req.recipientSharedEmail || 'Not Shared'}</span>
+        </div>
+        <div class="request-card__info-item">
+          <strong>Phone</strong> <span>${req.recipientSharedPhone || 'Not Shared'}</span>
+        </div>
+      </div>
+    `;
+  } else {
+    detailsHTML = `
+      <button type="button" class="btn btn--outline btn--block btn-cancel-${req.id}" style="padding: 8px; font-size: 0.82rem;">Cancel Request</button>
+    `;
+  }
+
+  reqCard.innerHTML = `
+    <div class="request-card__header">
+      <div>
+        <p class="request-card__title">Sent to ${req.recipientName} (${req.recipientBranch}, ${req.recipientYear})</p>
+        <p class="request-card__subtitle">Swap match: ${req.recipientCurrentHostel} → ${req.recipientDesiredHostel}</p>
+        ${requestedAt ? `<p class="request-card__timestamp">Requested: ${requestedAt}</p>` : ''}
+        ${isApproved && approvedAt ? `<p class="request-card__timestamp">Approved: ${approvedAt}</p>` : ''}
+      </div>
+      <span class="request-card__status ${isApproved ? 'request-card__status--approved' : ''}">${req.status}</span>
+    </div>
+    ${detailsHTML}
+  `;
+
+  if (!isApproved) {
+    reqCard.querySelector(`.btn-cancel-${req.id}`).addEventListener("click", () => declineRequest(req.id));
+  }
+
+  return reqCard;
+}
+
+// Groups a request list into Pending / Approved / Rejected buckets.
+// Note: declining/cancelling a request deletes its document (existing,
+// unchanged behavior), so "Rejected" will show as empty unless a request
+// is ever left in that status — the grouping/empty-state UI is still
+// provided so the section always matches the required structure.
+function groupRequestsByStatus(requests) {
+  return {
+    pending: requests.filter((r) => r.status !== 'approved' && r.status !== 'rejected'),
+    approved: requests.filter((r) => r.status === 'approved'),
+    rejected: requests.filter((r) => r.status === 'rejected')
+  };
+}
+
+function renderRequestGroup(container, requests, buildCardFn, emptyLabel) {
+  container.innerHTML = '';
+  const groups = groupRequestsByStatus(requests);
+
+  [
+    { key: 'pending', label: 'Pending' },
+    { key: 'approved', label: 'Approved' },
+    { key: 'rejected', label: 'Rejected' }
+  ].forEach(({ key, label }) => {
+    const group = groups[key];
+    const groupWrap = document.createElement('div');
+    groupWrap.className = 'request-group';
+
+    const groupTitle = document.createElement('p');
+    groupTitle.className = 'request-group__title';
+    groupTitle.textContent = `${label} (${group.length})`;
+    groupWrap.appendChild(groupTitle);
+
+    if (group.length === 0) {
+      const emptyP = document.createElement('p');
+      emptyP.className = 'request-group__empty';
+      emptyP.textContent = `No ${label.toLowerCase()} ${emptyLabel}.`;
+      groupWrap.appendChild(emptyP);
+    } else {
+      group.forEach((req) => groupWrap.appendChild(buildCardFn(req)));
+    }
+
+    container.appendChild(groupWrap);
+  });
+}
+
 function renderRequestsLists(incoming, outgoing) {
-  // INCOMING REQUESTS
-  incomingRequestsList.innerHTML = '';
-  if (incoming.length === 0) {
-    incomingRequestsList.innerHTML = `<p style="font-size: 0.9rem; font-style: italic; color: var(--color-text-faint);">No incoming requests yet.</p>`;
-  } else {
-    incoming.forEach((req) => {
-      const reqCard = document.createElement('div');
-      reqCard.className = 'request-card';
-      const isApproved = req.status === 'approved';
-
-      let actionsHTML = '';
-      if (!isApproved) {
-        actionsHTML = `
-          <div class="request-card__actions">
-            <div class="request-card__checkboxes">
-              <label class="request-card__checkbox-label">
-                <input type="checkbox" id="shareEmail-${req.id}" checked /> Share Email
-              </label>
-              <label class="request-card__checkbox-label">
-                <input type="checkbox" id="sharePhone-${req.id}" checked /> Share Phone Number
-              </label>
-            </div>
-            <div class="request-card__buttons">
-              <button type="button" class="btn btn--primary btn-approve-${req.id}">Approve</button>
-              <button type="button" class="btn btn--danger btn-decline-${req.id}">Decline</button>
-            </div>
-          </div>
-        `;
-      } else {
-        actionsHTML = `
-          <div class="request-card__shared-info">
-            <p style="margin:0 0 6px 0; font-weight:600; color:var(--color-success);">Approved ✓</p>
-            <p style="margin:0; font-size:0.85rem;">You shared your contact details with ${req.senderName}.</p>
-          </div>
-        `;
-      }
-
-      reqCard.innerHTML = `
-        <div class="request-card__header">
-          <div>
-            <p class="request-card__title">${req.senderName} (${req.senderBranch}, ${req.senderYear})</p>
-            <p class="request-card__subtitle">Wants to swap: ${req.senderCurrentHostel} → ${req.senderDesiredHostel}</p>
-          </div>
-          <span class="request-card__status ${isApproved ? 'request-card__status--approved' : ''}">${req.status}</span>
-        </div>
-        ${actionsHTML}
-      `;
-
-      if (!isApproved) {
-        reqCard.querySelector(`.btn-approve-${req.id}`).addEventListener("click", () => approveRequest(req));
-        reqCard.querySelector(`.btn-decline-${req.id}`).addEventListener("click", () => declineRequest(req.id));
-      }
-
-      incomingRequestsList.appendChild(reqCard);
-    });
-  }
-
-  // OUTGOING REQUESTS
-  outgoingRequestsList.innerHTML = '';
-  if (outgoing.length === 0) {
-    outgoingRequestsList.innerHTML = `<p style="font-size: 0.9rem; font-style: italic; color: var(--color-text-faint);">No sent requests yet.</p>`;
-  } else {
-    outgoing.forEach((req) => {
-      const reqCard = document.createElement('div');
-      reqCard.className = 'request-card';
-      const isApproved = req.status === 'approved';
-
-      let detailsHTML = '';
-      if (isApproved) {
-        detailsHTML = `
-          <div class="request-card__shared-info">
-            <p style="margin:0 0 6px 0; font-weight:600; color:var(--color-success);">Recipient Shared Contact Details:</p>
-            <div class="request-card__info-item">
-              <strong>Email</strong> <span>${req.recipientSharedEmail || 'Not Shared'}</span>
-            </div>
-            <div class="request-card__info-item">
-              <strong>Phone</strong> <span>${req.recipientSharedPhone || 'Not Shared'}</span>
-            </div>
-          </div>
-        `;
-      } else {
-        detailsHTML = `
-          <button type="button" class="btn btn--outline btn--block btn-cancel-${req.id}" style="padding: 8px; font-size: 0.82rem;">Cancel Request</button>
-        `;
-      }
-
-      reqCard.innerHTML = `
-        <div class="request-card__header">
-          <div>
-            <p class="request-card__title">Sent to ${req.recipientName} (${req.recipientBranch}, ${req.recipientYear})</p>
-            <p class="request-card__subtitle">Swap match: ${req.recipientCurrentHostel} → ${req.recipientDesiredHostel}</p>
-          </div>
-          <span class="request-card__status ${isApproved ? 'request-card__status--approved' : ''}">${req.status}</span>
-        </div>
-        ${detailsHTML}
-      `;
-
-      if (!isApproved) {
-        reqCard.querySelector(`.btn-cancel-${req.id}`).addEventListener("click", () => declineRequest(req.id));
-      }
-
-      outgoingRequestsList.appendChild(reqCard);
-    });
-  }
+  renderRequestGroup(outgoingRequestsList, outgoing, buildOutgoingRequestCard, "sent requests");
+  renderRequestGroup(incomingRequestsList, incoming, buildIncomingRequestCard, "received requests");
 }
 
 async function approveRequest(req) {
@@ -1070,6 +1352,8 @@ document.addEventListener('DOMContentLoaded', () => {
   setupVerificationHandlers();
   setupProfileSubmit();
   setupProfileDelete();
+  setupSearchSwapButton();
+  setupMatchModal();
 
   onAuthStateChanged(auth, async (user) => {
     currentUser = user;
